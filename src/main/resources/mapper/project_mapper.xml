@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.two.project.dao.ProjectDAO">
+	
+	<select id="projectInfo" resultType="project">
+		SELECT * FROM project_info
+		WHERE project_id = #{project_id}
+	</select>
+	
+	<insert id="feedAlarm" parameterType="String">
+		INSERT INTO alarm(alarmcontent,alarm_code,alarm_receiver,is_read,iden_id)
+		VALUES('새로운 피드 알림','ALARM_FEED',#{member_id},false,#{project_id})
+	</insert>
+	
+   <select id="listCall" resultType="project"
+      parameterType="string">
+      SELECT * FROM project
+      <where>
+         <if
+            test="keyword != null and !keyword.equals('') and opt =='project_name'">AND project_name LIKE CONCAT('%',#{keyword},'%')</if>
+         <if
+            test="keyword != null and !keyword.equals('') and opt =='project_manager'">AND project_manager LIKE CONCAT('%',#{keyword},'%')</if>
+         <if
+            test="keyword != null and !keyword.equals('') and opt =='field_manager'">AND field_manager LIKE CONCAT('%',#{keyword},'%')</if>
+          <if
+            test="myproject != null and !myproject.equals('')">AND project_id IN (SELECT pi2.project_id FROM project_info pi2 WHERE member_id = #{myproject})</if>
+         AND blind = 0
+
+      </where>
+      ORDER BY project_id DESC
+      LIMIT #{cnt} OFFSET #{offset}
+   </select>
+
+   <select id="totalCount" resultType="int" parameterType="string">
+      SELECT COUNT(project_id) FROM project AS p
+      <where>
+
+         <if test="keyword != null and !keyword.equals('') and opt =='project_name'">AND p.project_name LIKE CONCAT('%',#{keyword},'%')</if>
+         <if test="keyword != null and !keyword.equals('') and opt =='project_manager'">AND p.project_manager LIKE CONCAT('%',#{keyword},'%')</if>
+         <if test="keyword != null and !keyword.equals('') and opt =='field_manager'">AND p.field_manager LIKE CONCAT('%',#{keyword},'%')</if>
+		<if test="myproject != null and !myproject.equals('')">AND p.project_id IN (SELECT pi2.project_id FROM project_info pi2 WHERE pi2.member_id = #{myproject})</if>
+         AND blind = 0
+
+      </where>
+   </select>
+
+
+   <insert id="projectWrite" parameterType="hashmap">
+      INSERT INTO project
+      (project_name, project_manager, field_manager, manager_phone,
+      start_date, end_date, member_id)
+      VALUES(#{project_name},#{project_manager},#{field_manager},
+      #{manager_phone},#{start_date},#{end_date},#{member_id})
+   </insert>
+
+
+   <insert id="feedWrite" parameterType="project"
+      useGeneratedKeys="true" keyColumn="feed_id" keyProperty="feed_id">
+      INSERT INTO
+      feed(content, project_id, member_id)
+      VALUES(#{content}, #{project_id}, #{member_id})
+   </insert>
+
+
+   <insert id="archivefileWrite">
+      INSERT INTO feed_file(ori_photo_name, photo_name, feed_id)
+      VALUES(#{param1}, #{param2}, #{param3})
+   </insert>
+
+
+   <select id="getAllFeed" parameterType="string" resultType="hashmap">
+     select f.feed_id
+      , f.project_id
+      , (select m.name from member m where m.member_id = f.member_id) AS name
+      , (select m2.member_id  from member m2 where m2.member_id = f.member_id) AS member_id
+      , f.content
+      , DATE_FORMAT(f.date,'%Y-%m-%d') as date
+      , ff.feed_file_id
+      , ff.ori_photo_name
+      , ff.photo_name
+      , p.project_name
+      from feed f
+      left join feed_file ff on ff.feed_id = f.feed_id
+      left join project p on p.project_id = f.project_id
+      WHERE f.project_id = #{project_id}
+      order by f.feed_id ASC;
+   </select>
+   
+   
+   
+   <select id="projectAddOption" resultType="project">
+      select m.*, c1.code_name as dept_name, c2.code_name as position_name  from member m 
+		join code c1 on(m.dept_code = c1.code_id)
+		join code c2 on(m.position_code = c2.code_id)
+   </select>
+   
+   
+	<insert id="addProjectMember" parameterType="string">
+	   INSERT INTO project_info(project_id, member_id)
+	   VALUES(#{project_id},#{member_id})
+   </insert>
+   
+   
+   
+   <delete id="fileDel">
+   DELETE FROM feed_file WHERE
+   feed_file_id = #{feed_file_id}
+   </delete>
+   
+   
+   <delete id="feedDel">
+   DELETE FROM feed WHERE
+   feed_id = #{feed_id}
+   </delete>
+   
+   <select id="feedUpdate" resultType="project">
+	 SELECT f.feed_id
+	 ,f.content
+	 ,ff.feed_file_id
+	 ,ff.ori_photo_name 
+	 ,p.project_id
+	 ,p.project_name
+	 FROM feed f
+	 left join feed_file ff on ff.feed_id = f.feed_id
+	 left join project p on p.project_id = f.project_id
+	  WHERE f.feed_id = #{feed_id}
+   </select>
+   
+   <update id="feedUpdateDo" parameterType="string">
+   UPDATE feed SET
+   	content = #{content}
+   	WHERE feed_id = #{feed_id}
+   </update>
+   
+   <update id="projectDel" parameterType="string">
+   	UPDATE project SET
+   	blind = 1
+   	WHERE project_id = #{project_id}
+   </update>
+   
+   
+   <select id="projectUpdateModal">
+   	SELECT * FROM project WHERE project_id = #{project_id}
+   </select>
+   
+   
+   		<update id="projectUpdate" parameterType="map">
+		  UPDATE project
+		  <set>
+		    <if test="project_name2 != null">
+		      project_name = #{project_name2}
+		    </if>
+		    <if test="project_manager2 != null">
+		      <if test="project_name2 != null">,</if>
+		      project_manager = #{project_manager2}
+		    </if>
+		    <if test="field_manager2 != null">
+		      <if test="project_name2 != null or project_manager2 != null">,</if>
+		      field_manager = #{field_manager2}
+		    </if>
+		    <if test="manager_phone2 != null">
+		      <if test="project_name2 != null or project_manager2 != null or field_manager2 != null">,</if>
+		      manager_phone = #{manager_phone2}
+		    </if>
+		    <if test="start_date2 != null">
+		      <if test="project_name2 != null or project_manager2 != null or field_manager2 != null or manager_phone2 != null">,</if>
+		      start_date = #{start_date2}
+		    </if>
+		    <if test="end_date2 != null">
+		      <if test="project_name2 != null or project_manager2 != null or field_manager2 != null or manager_phone2 != null or start_date2 != null">,</if>
+		      end_date = #{end_date2}
+		    </if>
+		  </set>
+		  WHERE project_id = #{project_id2}
+		</update>
+   
+   
+
+
+
+   <!-- 캘린더 영역 -->
+
+
+
+   <select id="getEvent" resultType="ProEventdata">
+      SELECT * FROM project_calendar
+      WHERE project_id=#{project_id}
+
+   </select>
+
+
+   <insert id="calendarUpdate" parameterType="ProEventdata">
+      INSERT INTO
+      project_calendar (content, start_date,
+      end_date,project_id,allDay,backgroundColor,borderColor,project_calendar_id)
+      VALUES
+      (#{content},#{start_date},#{end_date},#{project_id},#{allDay},#{backgroundColor},#{borderColor},#{project_calendar_id})
+      ON DUPLICATE KEY UPDATE start_date =
+      #{start_date},end_date=#{end_date}
+
+   </insert>
+
+
+   <insert id="calendarUpdate2" parameterType="ProEventdata">
+      INSERT INTO
+      project_calendar (content, start_date,
+      end_date,project_id,allDay,backgroundColor,borderColor,project_calendar_id)
+      VALUES
+      (#{content},#{start_date},#{end_date},#{project_id},#{allDay},#{backgroundColor},#{borderColor},#{project_calendar_id})
+      ON DUPLICATE KEY UPDATE start_date =
+      #{start_date},end_date=#{end_date}, content=#{content}
+
+   </insert>
+
+   <delete id="eventDelete">
+      DELETE FROM project_calendar WHERE
+      project_calendar_id =
+      #{project_calendar_id}
+   </delete>
+
+
+
+</mapper>

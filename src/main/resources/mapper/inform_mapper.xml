@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	   
+<mapper namespace="kr.co.two.board.dao.InformDAO">
+
+   <insert id="informWriteDo" parameterType="inform">
+      INSERT INTO board(subject, member_id, content, board_code, is_form)
+         VALUES(#{subject}, #{member_id}, #{content}, 'inform', #{is_form})
+   </insert>
+   
+    
+	<select id="listCall" resultType="inform" parameterType="string">
+	    SELECT b.*, m.name AS name
+	    FROM board b
+	    JOIN member m ON b.member_id = m.member_id
+	    <where>
+	        b.board_code = 'inform'
+	        <if test="keyword != null and !keyword.equals('') and opt == 'name'">
+	            AND name LIKE CONCAT('%', #{keyword}, '%')
+	        </if>
+	        <if test="keyword != null and !keyword.equals('') and opt == 'subject'">
+	            AND b.subject LIKE CONCAT('%', #{keyword}, '%')
+	        </if>
+	    </where>
+	    ORDER BY CASE WHEN b.is_form = 1 THEN 0 ELSE 1 END, b.board_id DESC
+	    LIMIT #{cnt} OFFSET #{offset}
+	</select>
+	
+	<select id="totalCount" resultType="int" parameterType="string">
+		SELECT COUNT(board_id) FROM board
+		<where>
+		board_code = 'inform'
+			<if test="keyword != null and !keyword.equals('') and opt =='member_id'"> AND member_id LIKE CONCAT('%',#{keyword},'%')</if>
+			<if test="keyword != null and !keyword.equals('') and opt =='subject'"> AND subject LIKE CONCAT('%',#{keyword},'%')</if>
+		</where>
+	</select>
+	
+	<select id="adminChk" resultType="int">
+		SELECT admin FROM member
+		WHERE member_id = #{member_id}
+	</select>
+   
+   
+	<select id="informDetail" resultType="inform">
+	    SELECT b.*, m.name AS name
+	    FROM board b
+	    JOIN member m ON b.member_id = m.member_id
+	    WHERE b.board_id = #{board_id}
+	</select>
+   
+   <select id="informUpdate" resultType="inform">
+	 SELECT * FROM board
+	  WHERE board_id = #{board_id}
+   </select>
+   
+   <update id="informUpdateDo" parameterType="hashmap">
+   	UPDATE board SET
+   		subject = #{subject}
+   		,content = #{content}
+   		,is_form = #{is_form}
+   		WHERE board_id = #{board_id}
+   </update>
+   
+   <delete id="delete">
+   	DELETE FROM board WHERE board_id = #{board_id}
+   </delete>
+   
+   <update id="is_formDel" parameterType="hashmap">
+   	UPDATE board SET
+   		is_form = '0'
+   		WHERE board_id = #{id}
+   </update>
+
+
+</mapper>
